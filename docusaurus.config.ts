@@ -74,8 +74,8 @@ const config: Config = {
           title: 'Docs',
           items: [
             {label: 'Getting Started', to: '/docs/getting-started/prerequisites'},
+            {label: 'Developer onboarding', to: '/docs/getting-started/developers'},
             {label: 'Architecture', to: '/docs/architecture/overview'},
-            {label: 'Roadmap', to: '/docs/roadmap'},
           ],
         },
         {

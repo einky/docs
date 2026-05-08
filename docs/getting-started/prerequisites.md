@@ -25,7 +25,8 @@ The following tools and libraries are required to build or run any component of 
 | Pillow | Latest | Frame dithering and resize |
 | numpy | Latest | Numerical operations in frame processing |
 | Xvfb | Any | Virtual framebuffer for headless rendering |
-| mesa-utils / libgl1-mesa-dri | Any | Software OpenGL required by Ren'Py |
+| mesa-utils / libgl1-mesa-dri | Any | Software OpenGL required by the Ren'Py SDK |
+| Ren'Py SDK | 8.x (vanilla) | Installed by `meta/scripts/install_sdk.sh`; not modified |
 | GCC | Any | Compiling C modules and the SPI driver |
 | pi-gen | Latest | OS image build (optional, for image builds) |
 

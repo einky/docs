@@ -27,12 +27,12 @@ The GDEM0397T81P communicates with the Pi over SPI at 3.3V logic.
 | BUSY | TBD | Panel busy signal |
 
 :::note
-Exact pin assignments are defined in the C SPI driver in the `renpy_rework` repository.
+Exact pin assignments are defined in the C SPI driver in the [`runtime`](../architecture/overview#repo-layout) repository.
 :::
 
 ## GPIO — Buttons
 
-Seven buttons are wired to GPIO pins with pull-up or pull-down resistors. See [Input System](../input-system) for the logical mapping.
+Seven buttons are wired to GPIO pins with pull-up or pull-down resistors. The logical mapping is owned by the [`runtime`](../architecture/overview#repo-layout) repo.
 
 ## Power
 

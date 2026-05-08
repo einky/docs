@@ -4,9 +4,7 @@ sidebar_position: 2
 
 # Setup & Running
 
-:::note
-A single unified setup script does not exist yet. Setup is currently per-repository.
-:::
+For a fresh clone of the full workspace, see [Developer onboarding](./developers) — it walks through `meta/bootstrap.sh`, which is the canonical entry point.
 
 ## Requirements
 
@@ -16,19 +14,6 @@ A single unified setup script does not exist yet. Setup is currently per-reposit
 
 See [Prerequisites](./prerequisites) for the full list of dependencies.
 
-## Initial setup
-
-```bash
-# 1. Flash Raspbian Lite to MicroSD and boot the Pi
-
-# 2. Clone the aggregator repository
-git clone https://github.com/Crab-Ink-gaming/crab-ink.git
-cd crab-ink
-
-# 3. Run the setup scripts to pull all repositories and install dependencies
-# (individual scripts per component — see each repo's README)
-```
-
 ## Running in dev mode
 
 Dev mode uses a Unix socket for frame output. No e-ink hardware required.
@@ -37,8 +22,8 @@ Dev mode uses a Unix socket for frame output. No e-ink hardware required.
 # Start Xvfb (virtual framebuffer)
 Xvfb :1 -screen 0 800x480x24 &
 
-# Launch the engine with socket output
-DISPLAY=:1 python3 launcher/main.py --output socket
+# Start the runtime, which boots the launcher (a Ren'Py game)
+DISPLAY=:1 python3 -m runtime --output socket
 ```
 
 ## Running on hardware
@@ -46,11 +31,8 @@ DISPLAY=:1 python3 launcher/main.py --output socket
 Requires the GDEM0397T81P panel connected over SPI.
 
 ```bash
-# Start Xvfb
 Xvfb :1 -screen 0 800x480x24 &
-
-# Launch with SPI output
-DISPLAY=:1 python3 launcher/main.py --output spi
+DISPLAY=:1 python3 -m runtime --output spi
 ```
 
 ## Dev vs. production output
