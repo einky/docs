@@ -4,9 +4,6 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "sync-adrs": "node scripts/sync-adrs.js",
-    "prestart": "node scripts/sync-adrs.js",
-    "prebuild": "node scripts/sync-adrs.js",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
