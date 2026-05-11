@@ -46,6 +46,7 @@ Five momentary buttons, each between a GPIO and GND. The firmware enables `INPUT
 | down   | 33   | `Down`           |
 | right  | 26   | `Right`          |
 | enter  | 12   | `Return`         |
+| esc    | 14   | `Escape`         |
 
 :::warning GPIO 12 is a strapping pin
 At reset, GPIO 12 selects the internal flash voltage — it must read LOW. A button-to-GND wired with no external pull-up is fine (the released button leaves the pin floating, but most boards have a sufficient external/parasitic pull-down for boot). If the ESP fails to boot intermittently, swap `enter` to a non-strapping pin (e.g. 27) and update `BTN_ENTER` in the firmware.
