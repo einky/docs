@@ -18,10 +18,12 @@ jobs:
         with:
           node-version: 20
           cache: yarn
+      - uses: webfactory/ssh-agent@v0.5.0
+        with:
+          ssh-private-key: ${{ secrets.GH_PAGES_DEPLOY }}
       - name: Deploy to GitHub Pages
         env:
-          GIT_USER: victorboudet
-          GIT_PASS: ${{ secrets.GH_PAGES_DEPLOY }}
+          USE_SSH: true
         run: |
           git config --global user.email "victor.boudet@epitech.eu"
           git config --global user.name "victorboudet"
