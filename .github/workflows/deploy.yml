@@ -25,7 +25,7 @@ jobs:
         env:
           USE_SSH: true
         run: |
-          git config --global user.name "${{ vars.USER_NAME }}"
-          git config --global user.email "${{ vars.USER_MAIL }}"
+          git config --global user.email "victor.boudet@epitech.eu"
+          git config --global user.name "victorboudet"
           yarn install --frozen-lockfile
           yarn deploy
