@@ -16,8 +16,8 @@ const config: Config = {
   url: 'https://docs.inky.top',
   baseUrl: '/',
 
-  organizationName: 'Crab-Ink-gaming',
-  projectName: 'crab-ink',
+  organizationName: 'victorboudet',
+  projectName: 'docInky',
 
   onBrokenLinks: 'throw',
 
@@ -32,7 +32,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/Crab-Ink-gaming/crab-ink/tree/main/docs/',
+          editUrl: 'https://github.com/einky/docs/tree/main/',
         },
         blog: false,
         theme: {
@@ -61,7 +61,7 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          href: 'https://github.com/Crab-Ink-gaming',
+          href: 'https://github.com/einky',
           label: 'GitHub',
           position: 'right',
         },
@@ -83,12 +83,12 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/Crab-Ink-gaming',
+              href: 'https://github.com/einky',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Crab-Ink-Gaming. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Einky. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
