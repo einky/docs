@@ -16,8 +16,8 @@ const config: Config = {
   url: 'https://docs.einky.fr',
   baseUrl: '/',
 
-  organizationName: 'einky',
-  projectName: 'docs',
+  organizationName: 'victorboudet',
+  projectName: 'docInky',
 
   onBrokenLinks: 'throw',
 
