@@ -17,7 +17,7 @@ const config: Config = {
   baseUrl: '/',
 
   organizationName: 'einky',
-  projectName: 'einky',
+  projectName: 'docs',
 
   onBrokenLinks: 'throw',
 
