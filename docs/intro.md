@@ -36,7 +36,7 @@ The **launcher** is itself a Ren'Py game, not a Python wrapper around Ren'Py. At
 | Resource | Link |
 |----------|------|
 | GitHub Organization | [Crab-Ink-Gaming](https://github.com/Crab-Ink-gaming) |
-| Documentation | [docs.inky.top](https://docs.inky.top) |
+| Documentation | [docs.einky.fr](https://docs.einky.fr) |
 
 ## Where to go next
 

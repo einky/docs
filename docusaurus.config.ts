@@ -13,7 +13,7 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://docs.inky.top',
+  url: 'https://docs.einky.fr',
   baseUrl: '/',
 
   organizationName: 'Crab-Ink-gaming',
