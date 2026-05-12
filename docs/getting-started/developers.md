@@ -4,12 +4,12 @@ sidebar_position: 3
 
 # Getting Started for Developers
 
-Inky lives across [ten sibling repositories](../architecture/overview#repo-layout). The `meta` repo is the **only** clone you start from — it provides `bootstrap.sh`, which fans out and clones everything else.
+einky lives across [ten sibling repositories](../architecture/overview#repo-layout). The `meta` repo is the **only** clone you start from — it provides `bootstrap.sh`, which fans out and clones everything else.
 
 ## 1. Clone `meta`
 
 ```bash
-git clone https://github.com/Crab-Ink-Gaming/meta.git
+git clone https://github.com/einky/meta.git
 cd meta
 ```
 

@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Prerequisites
 
-The following tools and libraries are required to build or run any component of the Inky project.
+The following tools and libraries are required to build or run any component of the einky project.
 
 ## Hardware
 

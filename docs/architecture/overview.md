@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Architecture Overview
 
-Inky is split across **ten repositories** under the [Crab-Ink-Gaming](https://github.com/Crab-Ink-gaming) GitHub organization. Each repo has a single, narrow responsibility; the `meta` repo bootstraps a clone of every other one as siblings on disk.
+einky is split across **ten repositories** under the [einky](https://github.com/einky) GitHub organization. Each repo has a single, narrow responsibility; the `meta` repo bootstraps a clone of every other one as siblings on disk.
 
 ## Repo layout
 
@@ -37,9 +37,9 @@ einky/                   # workspace parent (any name)
 
 ## Engine model
 
-Inky uses the **vanilla Ren'Py SDK orchestrated by a custom runtime** — there is no fork, no patched engine, no rebuilt binary. The SDK is downloaded as released by Ren'Py upstream (see `meta/scripts/install_sdk.sh`) and run unmodified.
+einky uses the **vanilla Ren'Py SDK orchestrated by a custom runtime** — there is no fork, no patched engine, no rebuilt binary. The SDK is downloaded as released by Ren'Py upstream (see `meta/scripts/install_sdk.sh`) and run unmodified.
 
-Everything Inky-specific lives outside the engine:
+Everything einky-specific lives outside the engine:
 
 - **`runtime/`** is the supervisor. It launches the SDK against the active project, captures rendered frames from Xvfb, runs the dither pipeline, pushes bytes to the e-ink driver, and translates GPIO button presses into Ren'Py keyboard events.
 - **`launcher/`** is the boot UI. Because it is a regular Ren'Py game, the same display pipeline that draws every other title also draws the menu — there is no separate render path.

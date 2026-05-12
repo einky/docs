@@ -26,7 +26,7 @@ function HomepageHeader() {
           <Link
             className="button button--outline button--secondary button--lg"
             style={{marginLeft: '1rem'}}
-            href="https://github.com/Crab-Ink-gaming">
+            href="https://github.com/einky">
             GitHub
           </Link>
         </div>

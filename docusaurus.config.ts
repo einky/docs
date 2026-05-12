@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Inky',
+  title: 'einky',
   tagline: 'A portable e-ink console for visual novels and narrative games',
   favicon: 'img/favicon.ico',
 
@@ -16,8 +16,8 @@ const config: Config = {
   url: 'https://docs.einky.fr',
   baseUrl: '/',
 
-  organizationName: 'Crab-Ink-gaming',
-  projectName: 'crab-ink',
+  organizationName: 'einky',
+  projectName: 'einky',
 
   onBrokenLinks: 'throw',
 
@@ -32,7 +32,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/Crab-Ink-gaming/crab-ink/tree/main/docs/',
+          editUrl: 'https://github.com/einky/docs/tree/main/',
         },
         blog: false,
         theme: {
@@ -48,9 +48,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Inky',
+      title: 'einky',
       logo: {
-        alt: 'Inky Logo',
+        alt: 'einky Logo',
         src: 'img/logo.svg',
       },
       items: [
@@ -61,7 +61,7 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          href: 'https://github.com/Crab-Ink-gaming',
+          href: 'https://github.com/einky',
           label: 'GitHub',
           position: 'right',
         },
@@ -83,12 +83,12 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/Crab-Ink-gaming',
+              href: 'https://github.com/einky',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Crab-Ink-Gaming. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} einky. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

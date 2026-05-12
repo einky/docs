@@ -3,15 +3,15 @@ sidebar_position: 1
 slug: /intro
 ---
 
-# Welcome to Inky
+# Welcome to einky
 
-**Inky** (a.k.a. Crab-Ink) is a custom handheld console designed to run Ren'Py visual novels and narrative games on an e-ink display.
+**einky** is a custom handheld console designed to run Ren'Py visual novels and narrative games on an e-ink display.
 
 > An End-of-Studies Project (EIP) developed at Epitech Montpellier.
 
-## What is Inky?
+## What is einky?
 
-Inky runs on a **Raspberry Pi Zero 2W** with a **3.97" e-ink panel** (800×480px). The core goals are:
+einky runs on a **Raspberry Pi Zero 2W** with a **3.97" e-ink panel** (800×480px). The core goals are:
 
 - **Minimal battery consumption** — e-ink holds a frame without power
 - **Zero blue light emission** — no backlit screen
@@ -35,12 +35,12 @@ The **launcher** is itself a Ren'Py game, not a Python wrapper around Ren'Py. At
 
 | Resource | Link |
 |----------|------|
-| GitHub Organization | [Crab-Ink-Gaming](https://github.com/Crab-Ink-gaming) |
+| GitHub Organization | [einky](https://github.com/einky) |
 | Documentation | [docs.einky.fr](https://docs.einky.fr) |
 
 ## Where to go next
 
-- **[Prerequisites](./getting-started/prerequisites)** — what you need to build or run Inky
+- **[Prerequisites](./getting-started/prerequisites)** — what you need to build or run einky
 - **[Setup](./getting-started/setup)** — how to get the project running
 - **[Developer onboarding](./getting-started/developers)** — clone the workspace via `meta/bootstrap.sh`
 - **[Architecture](./architecture/overview)** — how all the pieces fit together
