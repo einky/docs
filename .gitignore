@@ -8,9 +8,6 @@
 .docusaurus
 .cache-loader
 
-# Mirrored from meta/adr by scripts/sync-adrs.js — do not edit in place
-/docs/architecture-decisions
-
 # Misc
 .DS_Store
 .env.local

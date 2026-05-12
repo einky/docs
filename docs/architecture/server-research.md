@@ -10,7 +10,7 @@ The `server` repo provides the catalog API, telemetry intake, and management end
 
 We evaluated four candidates. **FastAPI** is the chosen backend.
 
-The rationale is captured as an Architecture Decision Record — see [ADR 0003 — FastAPI for the backend server](../architecture-decisions/0003-fastapi-server.md). The short version:
+The short rationale:
 
 - **Python everywhere.** The runtime, the frame pipeline, and the SDK install scripts are already Python. Sharing a language across `runtime/` and `server/` lets us reuse Pydantic models for catalog entries and telemetry payloads on both sides of the wire, and lets contributors move between repos without context-switching.
 - **Type-checked schemas + free OpenAPI.** Pydantic gives us validated request/response models; FastAPI emits an OpenAPI document directly from those types, which `web/` consumes for its TypeScript client.

@@ -62,4 +62,3 @@ power on
 | Game binaries / assets | `games/` on disk; managed by the runtime |
 | Catalog metadata | `server/` (Postgres) |
 | Build pinned versions | `meta/versions.env` |
-| Architecture decisions | `meta/adr/` — surfaced in this site under the **Architecture Decisions** sidebar section |

@@ -61,4 +61,3 @@ The runtime starts the launcher (`../launcher`) as a Ren'Py game. Frames are emi
 | API endpoints, catalog DB | `server/` |
 | Admin / store UI | `web/` |
 | OS image, systemd units | `os/` |
-| Architecture decisions | `meta/adr/` |
