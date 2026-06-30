@@ -4,6 +4,12 @@ sidebar_position: 1
 
 # Architecture Overview
 
+:::note
+This page describes the **target** design. For what is actually wired together
+today — and where `runtime`, `games`, and the launcher still need integration —
+see [Integration status & roadmap](./integration-status).
+:::
+
 einky is a **polyrepo** under the [einky](https://github.com/einky) GitHub organization. Each repo has a single, narrow responsibility; the `meta` repo bootstraps a clone of every other one as siblings on disk and holds the **shared cross-repo contract**.
 
 ## Repo layout
