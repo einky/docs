@@ -17,19 +17,20 @@ einky runs on a **Raspberry Pi Zero 2W** with a **3.97" e-ink panel** (800×480p
 - **Zero blue light emission** — no backlit screen
 - **Distraction-free reading** — purpose-built for visual novels
 
-The system runs a custom Raspbian-based OS and the **vanilla Ren'Py SDK orchestrated by a custom runtime**. The runtime supervises a Ren'Py-based launcher game that acts as the boot menu, captures frames from a virtual framebuffer, and streams them to the e-ink panel over SPI.
+The device runs **InkyOS**, a purpose-built **Buildroot** appliance image that boots straight into Ren'Py. There is no package manager and no desktop in the boot path. Ren'Py renders headless into a virtual framebuffer; a frame pipeline dithers each frame to 1-bit and pushes it to the e-ink panel over SPI, and the seven hardware buttons are fed back into the engine as input.
 
 ## How it works
 
 ```
-Runtime (Python supervisor) starts vanilla Ren'Py SDK
-  → Ren'Py game (launcher or selected title) renders headless under Xvfb
-  → Frame captured by Python/Pillow
-  → Resize → Greyscale → Floyd-Steinberg dither
+InkyOS boots → Xvfb virtual display → Ren'Py renders the game headless
+  → frame captured (Floyd–Steinberg dither → 1-bit pack)
   → SPI driver (C) → GDEM0397T81P e-ink panel
+  ← 7 GPIO buttons → key/event injection back into Ren'Py
 ```
 
-The **launcher** is itself a Ren'Py game, not a Python wrapper around Ren'Py. At boot, the runtime starts the launcher game; selecting a title swaps the active project and re-launches the SDK against the new game.
+The same frame + input pipeline serves the **launcher** (itself a Ren'Py game that acts as the boot menu) and every game it starts.
+
+> **On the engine.** Developer workstations use the vanilla upstream Ren'Py SDK. On the device, InkyOS builds the *same* Ren'Py version from source as a Buildroot package, with one small e-ink patch (`config.eink_push_callback`). See the [Architecture Overview](./architecture/overview).
 
 ## Project links
 
@@ -41,6 +42,6 @@ The **launcher** is itself a Ren'Py game, not a Python wrapper around Ren'Py. At
 ## Where to go next
 
 - **[Prerequisites](./getting-started/prerequisites)** — what you need to build or run einky
-- **[Setup](./getting-started/setup)** — how to get the project running
+- **[Setup](./getting-started/setup)** — build InkyOS and run the dev loop
 - **[Developer onboarding](./getting-started/developers)** — clone the workspace via `meta/bootstrap.sh`
 - **[Architecture](./architecture/overview)** — how all the pieces fit together

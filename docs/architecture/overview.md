@@ -4,17 +4,18 @@ sidebar_position: 1
 
 # Architecture Overview
 
-einky is split across **ten repositories** under the [einky](https://github.com/einky) GitHub organization. Each repo has a single, narrow responsibility; the `meta` repo bootstraps a clone of every other one as siblings on disk.
+einky is a **polyrepo** under the [einky](https://github.com/einky) GitHub organization. Each repo has a single, narrow responsibility; the `meta` repo bootstraps a clone of every other one as siblings on disk and holds the **shared cross-repo contract**.
 
 ## Repo layout
 
 ```
 einky/                   # workspace parent (any name)
+├── meta/                # bootstrap, ADRs, versions.env, and shared/ contract
+│   └── shared/          # single source of truth: hardware.toml + protocol.md
 ├── .github/             # org profile, shared workflows, issue templates
-├── meta/                # workspace bootstrap, ADRs, shared scripts
 ├── docs/                # this site (Docusaurus)
-├── os/                  # pi-gen recipe building the Raspberry Pi OS image
-├── runtime/             # on-device Python supervisor
+├── buildroot_os/        # InkyOS — the Buildroot device image
+├── runtime/             # frame + input pipeline, SPI driver, ESP32 dev bridge
 ├── launcher/            # Ren'Py game shown at boot — the menu
 ├── server/              # FastAPI backend (catalog, telemetry)
 ├── web/                 # web frontend (admin / store / management)
@@ -24,41 +25,59 @@ einky/                   # workspace parent (any name)
 
 | Repo | Responsibility |
 |---|---|
-| `.github` | Org-wide GitHub config — profile README, reusable workflows, issue templates. |
-| `meta` | Single entry point for contributors. Hosts `bootstrap.sh`, `versions.env`, the local Docker dev stack, and the ADRs surfaced under the **Architecture Decisions** section of this sidebar. |
+| `meta` | Workspace entry point. Hosts `bootstrap.sh`, `versions.env`, the local Docker dev stack, the ADRs, and **`shared/`** — the one place the pinout, keymap, and wire protocols are defined. |
 | `docs` | Human-readable design docs and guides — what you are reading now. |
-| `os` | pi-gen-based image build. Produces the SD card image with the runtime, launcher, and SDK pre-installed. |
-| `runtime` | On-device Python supervisor. Owns the framebuffer-to-SPI pipeline, the input event loop, and the lifecycle of the Ren'Py SDK process (start/stop/swap project). |
-| `launcher` | A **Ren'Py game** that acts as the boot menu. The runtime starts it like any other title; selecting an entry tells the runtime to swap projects and re-launch the SDK. |
-| `server` | FastAPI backend serving the game catalog, telemetry ingestion, and management endpoints. See [Server research](./server-research). |
+| `buildroot_os` | **InkyOS.** A Buildroot `br2-external` tree that builds the device image and boots straight into a Ren'Py game. Builds Ren'Py from source; consumes `runtime`'s on-device logic. |
+| `runtime` | **Canonical owner of the on-device logic:** the framebuffer→e-ink frame pipeline (capture, Floyd–Steinberg dither, dispatch), the GPIO/input handler and keymap, the C SPI driver, and the ESP32 dev bridge. |
+| `launcher` | A **Ren'Py game** that acts as the boot menu. Scans `games/` and starts the selected title. |
+| `server` | FastAPI backend serving the game catalog and telemetry. See [Server research](./server-research). |
 | `web` | Web frontend for the catalog and admin tooling. Talks to `server`. |
 | `case` | Enclosure CAD, BOM, wiring diagrams. |
 | `games` | Ren'Py game sources shipped with or sideloaded onto the device. |
 
+> **History.** The device image was previously built with pi-gen (the archived `os` repo). It is now the Buildroot **InkyOS** appliance — see [ADR 0007](https://github.com/Crab-Ink-Gaming/meta/blob/main/adr/0007-buildroot-os.md). All earlier pi-gen workflows are retired.
+
+## The shared contract
+
+Everything that used to be duplicated across repos — panel geometry, the GPIO/SPI pin map, the button→key/event bindings, and the byte-level wire protocols — now lives **once** in `meta/shared/` (`hardware.toml`, `protocol.md`). Each repo derives its constants from that file rather than hard-coding them. The [Wiring](../hardware/wiring) page is rendered from the same table.
+
 ## Engine model
 
-einky uses the **vanilla Ren'Py SDK orchestrated by a custom runtime** — there is no fork, no patched engine, no rebuilt binary. The SDK is downloaded as released by Ren'Py upstream (see `meta/scripts/install_sdk.sh`) and run unmodified.
+- **On developer workstations:** the **vanilla upstream Ren'Py SDK**, installed unmodified by the pinned `meta/scripts/install-renpy-sdk.sh` (version + SHA256 from `versions.env`).
+- **On the device:** InkyOS builds the **same Ren'Py version from source** as a Buildroot package, running on Mesa **`llvmpipe`** software desktop GL (the Pi's VideoCore only exposes GL ES, which Ren'Py can't use). It carries one small patch adding `config.eink_push_callback` so a game can ship one stable frame per advance to the e-ink pipeline.
 
-Everything einky-specific lives outside the engine:
+Everything else einky-specific lives **outside** the engine, in `runtime` (the frame/input pipeline) and in the Ren'Py projects themselves (`launcher`, `games`).
 
-- **`runtime/`** is the supervisor. It launches the SDK against the active project, captures rendered frames from Xvfb, runs the dither pipeline, pushes bytes to the e-ink driver, and translates GPIO button presses into Ren'Py keyboard events.
-- **`launcher/`** is the boot UI. Because it is a regular Ren'Py game, the same display pipeline that draws every other title also draws the menu — there is no separate render path.
+## The frame + input pipeline (owned by `runtime`)
 
-## Boot sequence
+```
+ capture ──► greyscale ──► Floyd–Steinberg dither ──► pack 1-bit ──► dispatch
+   │                          (single implementation)                  │
+   ├─ external: xwd/mss from Xvfb                          ┌─ SPI driver → e-ink panel
+   └─ in-engine: config.eink_push_callback → PNG socket    ├─ Unix socket → dev preview
+                                                           └─ TCP → ESP32 dev bridge
+ input ◄── button name ◄── GPIO handler │ ESP32 (TCP) │ in-engine socket
+       └─► keymap (meta/shared/hardware.toml) ─► keysym (xdotool/uinput) or renpy.queue_event
+```
+
+There is exactly **one** dither/dispatch implementation (`runtime/src/frame_processor/`) and **one** keymap (`runtime/src/input/`, generated from the shared contract). `buildroot_os` consumes them as a Buildroot package instead of reimplementing. Full byte formats: [protocol.md](https://github.com/Crab-Ink-Gaming/meta/blob/main/shared/protocol.md).
+
+## Boot sequence (InkyOS)
 
 ```
 power on
-  → systemd starts runtime (PID 1 child)
-  → runtime starts Xvfb + spawns Ren'Py SDK on launcher game
-  → user presses a button → launcher dispatches a "play <game>" intent over a local socket
-  → runtime stops the launcher SDK process, swaps the project path, restarts the SDK
-  → game runs; quitting the game returns to the launcher (same swap, in reverse)
+  → BusyBox init → inky-session service
+  → Xvfb virtual display comes up
+  → Ren'Py renders the launcher (boot menu) headless into Xvfb
+  → runtime pipeline pumps frames to e-ink and buttons back into Ren'Py
+  → user selects a game → launcher starts it; on exit, back to the menu
 ```
 
 ## Where data lives
 
 | Concern | Lives in |
 |---|---|
-| Game binaries / assets | `games/` on disk; managed by the runtime |
+| Game binaries / assets | `games/` on disk; started by the launcher |
 | Catalog metadata | `server/` (Postgres) |
+| Pinout, keymap, wire protocols | `meta/shared/` |
 | Build pinned versions | `meta/versions.env` |

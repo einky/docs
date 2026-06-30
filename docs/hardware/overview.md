@@ -25,7 +25,7 @@ The **GooDisplay GDEM0397T81P** is a 3.97-inch e-ink panel:
 - Logic voltage: **3.3V**
 - Supports both full refresh and partial refresh
 
-The panel does not accept a live video signal. Frames must be pushed explicitly via SPI after processing — the dither/refresh pipeline lives in the [`runtime`](../architecture/overview#repo-layout) repo.
+The panel does not accept a live video signal. Frames must be pushed explicitly via SPI after processing — the dither/refresh pipeline lives in the [`runtime`](../architecture/overview#repo-layout) repo, and the exact pins are defined in the [Wiring](./wiring) contract.
 
 ## Compute
 
@@ -44,4 +44,4 @@ A 5000mAh Li-Ion battery powers the Pi via the USB-C port at 5V 3A. There is cur
 
 ## Input
 
-Seven GPIO buttons are wired directly to the Pi with pull-up/pull-down resistors. The mapping to Ren'Py keyboard events is owned by the [`runtime`](../architecture/overview#repo-layout) repo.
+Seven GPIO buttons are wired directly to the Pi with internal pull-ups (active-low). The button → key/event mapping is defined in the [`meta/shared`](../architecture/overview#the-shared-contract) hardware contract and consumed by `runtime`; see [Wiring](./wiring) for the table.

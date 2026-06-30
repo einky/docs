@@ -4,40 +4,53 @@ sidebar_position: 2
 
 # Setup & Running
 
-For a fresh clone of the full workspace, see [Developer onboarding](./developers) — it walks through `meta/bootstrap.sh`, which is the canonical entry point.
+For a fresh clone of the full workspace, see [Developer onboarding](./developers) — it walks through `meta/bootstrap.sh`, the canonical entry point.
 
-## Requirements
+There are two things you build/run: the **device image** (InkyOS) and the **frame/input pipeline** (`runtime`).
 
-- Raspberry Pi Zero 2W
-- MicroSD card with Raspbian Lite flashed
-- SSH or UART access for initial setup
+## Build & run InkyOS (the device image)
 
-See [Prerequisites](./prerequisites) for the full list of dependencies.
-
-## Running in dev mode
-
-Dev mode uses a Unix socket for frame output. No e-ink hardware required.
+The build is containerized; QEMU runs on the host. *Develop against the emulator, validate against hardware.*
 
 ```bash
-# Start Xvfb (virtual framebuffer)
-Xvfb :1 -screen 0 800x480x24 &
+cd buildroot_os
+git submodule update --init --recursive   # Buildroot is a pinned submodule
 
-# Start the runtime, which boots the launcher (a Ren'Py game)
-DISPLAY=:1 python3 -m runtime --output socket
+# Emulator target — fast, reliable day-to-day dev
+./build.sh qemu        # -> output-qemu/
+./run-qemu.sh          # boot it (serial console; log in as root)
+
+# Hardware target — the actual shipping SD image
+./build.sh pi          # -> output/images/sdcard.img
+sudo dd if=output/images/sdcard.img of=/dev/sdX bs=4M conv=fsync   # check /dev/sdX!
 ```
 
-## Running on hardware
+InkyOS boots straight into Ren'Py via the `inky-session` service — no shell or desktop in the boot path.
 
-Requires the GDEM0397T81P panel connected over SPI.
+## Run the frame/input pipeline in dev mode (`runtime`)
+
+Dev mode emits frames to a Unix socket (or to the ESP32 dev bridge over TCP), so **no e-ink hardware is required**. Point the dev viewer at the socket to preview frames.
 
 ```bash
-Xvfb :1 -screen 0 800x480x24 &
-DISPLAY=:1 python3 -m runtime --output spi
+cd runtime
+make setup        # venv + dev deps
+make build-c      # compile the SPI driver C extension
+make run-dev      # EINKY_BACKEND=socket -> tools/preview.py
 ```
 
-## Dev vs. production output
+On the Pi, the same pipeline runs against real hardware:
 
-| Mode | Output target | Use case |
-|------|--------------|---------|
-| `--output socket` | Unix socket → local viewer | Development, no hardware needed |
-| `--output spi` | C SPI driver → GDEM0397T81P | Production, real hardware |
+```bash
+make run-prod     # EINKY_BACKEND=spi -> GDEM0397T81P over SPI
+```
+
+## Output backends
+
+| `EINKY_BACKEND` | Output target | Use case |
+|---|---|---|
+| `socket` | Unix socket → `tools/preview.py` | Development, no hardware |
+| `tcp` | TCP → ESP32 dev bridge → real panel | Demo on a real panel without a Pi ([ESP-32 bridge](./esp32-bridge)) |
+| `spi` | C SPI driver → GDEM0397T81P | Production, on the Pi |
+
+> Panel size, pins, and the button map come from
+> [`meta/shared/hardware.toml`](https://github.com/Crab-Ink-Gaming/meta/blob/main/shared/hardware.toml) — never hard-code them.

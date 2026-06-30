@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Getting Started for Developers
 
-einky lives across [ten sibling repositories](../architecture/overview#repo-layout). The `meta` repo is the **only** clone you start from — it provides `bootstrap.sh`, which fans out and clones everything else.
+einky lives across [sibling repositories](../architecture/overview#repo-layout). The `meta` repo is the **only** clone you start from — it provides `bootstrap.sh`, which fans out and clones everything else.
 
 ## 1. Clone `meta`
 
@@ -22,18 +22,26 @@ cd meta
 ./bootstrap.sh --ssh     # use SSH remotes instead
 ```
 
+`buildroot_os` vendors Buildroot as a submodule, so after the clone:
+
+```bash
+git -C ../buildroot_os submodule update --init --recursive
+```
+
 After it finishes, your tree should look like the [Repo layout](../architecture/overview#repo-layout).
 
-## 3. Install the Ren'Py SDK
+## 3. Install the Ren'Py SDK (workstation)
 
-The SDK is **vanilla** — we do not fork or patch it. `meta/scripts/install_sdk.sh` downloads the latest upstream release, strips Windows/macOS payloads, and leaves a ready-to-run SDK directory.
+Developer machines run the **vanilla** upstream SDK. The installer pins the version and verifies its SHA256 (both from `meta/versions.env`):
 
 ```bash
 cd ../meta
-./scripts/install_sdk.sh
+./scripts/install-renpy-sdk.sh ~/renpy
 ```
 
-## 4. Bring up the local dev stack
+> The device itself does **not** use this tarball — InkyOS builds the same Ren'Py version from source (see [Architecture → Engine model](../architecture/overview#engine-model)).
+
+## 4. Bring up the local dev stack (server/web)
 
 ```bash
 docker compose -f compose/docker-compose.dev.yml up
@@ -41,23 +49,17 @@ docker compose -f compose/docker-compose.dev.yml up
 
 This boots Postgres and mounts `../server` and `../web` as live-reloading volumes.
 
-## 5. Run the runtime against the launcher
+## 5. Run the device stack
 
-From the workspace root, with Xvfb available:
-
-```bash
-Xvfb :1 -screen 0 800x480x24 &
-DISPLAY=:1 python3 -m runtime --output socket
-```
-
-The runtime starts the launcher (`../launcher`) as a Ren'Py game. Frames are emitted to a Unix socket — point the dev viewer at it to see the e-ink simulation without hardware.
+Build and boot **InkyOS** in the emulator, and/or run the **`runtime`** pipeline against a Ren'Py game — see [Setup & Running](./setup).
 
 ## What goes where
 
 | You're touching… | Repo |
 |---|---|
 | The boot menu UI | `launcher/` (Ren'Py script) |
-| Frame pipeline, input mapping, SDK supervision | `runtime/` |
+| Frame pipeline, input/keymap, SPI driver, ESP32 bridge | `runtime/` |
+| The device OS image, boot session, packaging | `buildroot_os/` |
+| Pinout, keymap, wire protocols (shared) | `meta/shared/` |
 | API endpoints, catalog DB | `server/` |
 | Admin / store UI | `web/` |
-| OS image, systemd units | `os/` |
