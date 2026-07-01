@@ -53,4 +53,4 @@ make run-prod     # EINKY_BACKEND=spi -> GDEM0397T81P over SPI
 | `spi` | C SPI driver → GDEM0397T81P | Production, on the Pi |
 
 > Panel size, pins, and the button map come from
-> [`meta/shared/hardware.toml`](https://github.com/Crab-Ink-Gaming/meta/blob/main/shared/hardware.toml) — never hard-code them.
+> [`meta/shared/hardware.toml`](https://github.com/einky/meta/blob/main/shared/hardware.toml) — never hard-code them.

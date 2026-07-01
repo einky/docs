@@ -18,7 +18,7 @@ The following tools and libraries are required to build or run einky.
 | USB-C cable | — | Power and data transfer |
 
 Pin assignments for the panel and buttons are defined once in
-[`meta/shared/hardware.toml`](https://github.com/Crab-Ink-Gaming/meta/blob/main/shared/hardware.toml)
+[`meta/shared/hardware.toml`](https://github.com/einky/meta/blob/main/shared/hardware.toml)
 and rendered on the [Wiring](../hardware/wiring) page.
 
 ## Software

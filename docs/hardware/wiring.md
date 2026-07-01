@@ -6,7 +6,7 @@ sidebar_position: 2
 
 :::info Source of truth
 These pin assignments are the rendering of
-[`meta/shared/hardware.toml`](https://github.com/Crab-Ink-Gaming/meta/blob/main/shared/hardware.toml),
+[`meta/shared/hardware.toml`](https://github.com/einky/meta/blob/main/shared/hardware.toml),
 the single authoritative contract. `runtime` (the SPI driver + keymap) and the
 ESP-32 firmware generate their constants from the same file. **Do not edit pins
 here independently — change `hardware.toml` and regenerate.**

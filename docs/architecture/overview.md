@@ -41,7 +41,7 @@ einky/                   # workspace parent (any name)
 | `case` | Enclosure CAD, BOM, wiring diagrams. |
 | `games` | Ren'Py game sources shipped with or sideloaded onto the device. |
 
-> **History.** The device image was previously built with pi-gen (the archived `os` repo). It is now the Buildroot **InkyOS** appliance — see [ADR 0007](https://github.com/Crab-Ink-Gaming/meta/blob/main/adr/0007-buildroot-os.md). All earlier pi-gen workflows are retired.
+> **History.** The device image was previously built with pi-gen (the archived `os` repo). It is now the Buildroot **InkyOS** appliance — see [ADR 0007](https://github.com/einky/meta/blob/main/adr/0007-buildroot-os.md). All earlier pi-gen workflows are retired.
 
 ## The shared contract
 
@@ -66,7 +66,7 @@ Everything else einky-specific lives **outside** the engine, in `runtime` (the f
        └─► keymap (meta/shared/hardware.toml) ─► keysym (xdotool/uinput) or renpy.queue_event
 ```
 
-There is exactly **one** dither/dispatch implementation (`runtime/src/frame_processor/`) and **one** keymap (`runtime/src/input/`, generated from the shared contract). `buildroot_os` consumes them as a Buildroot package instead of reimplementing. Full byte formats: [protocol.md](https://github.com/Crab-Ink-Gaming/meta/blob/main/shared/protocol.md).
+There is exactly **one** dither/dispatch implementation (`runtime/src/frame_processor/`) and **one** keymap (`runtime/src/input/`, generated from the shared contract). `buildroot_os` consumes them as a Buildroot package instead of reimplementing. Full byte formats: [protocol.md](https://github.com/einky/meta/blob/main/shared/protocol.md).
 
 ## Boot sequence (InkyOS)
 

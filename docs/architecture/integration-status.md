@@ -19,7 +19,7 @@ produced from a direct audit of the repos on disk, not from the other docs.
 | Is **`runtime`** used by the OS today? | **No.** `buildroot_os` does not package or install it. The OS ships only the *producer* half of the e-ink path (the in-engine PNG capture hook); the *consumer* half (dither → 1-bit → SPI, GPIO input, C driver) lives only in `runtime` and is not integrated. |
 | Is **`runtime`** useful to the project? | **Yes — eventually essential, currently orphaned.** It is the only implementation of the real e-ink frame pipeline, the GPIO handler, the C SPI driver for the GDEM0397T81P panel, and the ESP32 firmware. Not needed for the *emulator*; **cannot ship hardware without it.** |
 | Is the **`games`** repo used by the OS? | **Not as a repo.** The OS embeds its own *vendored copy* of `the_question` under `board/qemu/overlay/opt/`. It is not pulled from `games/`. |
-| Is **`games`** useful as-is? | **Low.** `the_question` is the upstream Ren'Py tutorial — a test fixture, not an einky title. `games/launcher/` is a misfiled Ren'Py SDK project browser that [ADR 0008](https://github.com/Crab-Ink-Gaming/meta/blob/main/adr/0008-shared-hardware-contract.md) says to delete. |
+| Is **`games`** useful as-is? | **Low.** `the_question` is the upstream Ren'Py tutorial — a test fixture, not an einky title. `games/launcher/` is a misfiled Ren'Py SDK project browser that [ADR 0008](https://github.com/einky/meta/blob/main/adr/0008-shared-hardware-contract.md) says to delete. |
 
 ## What actually boots today (emulator path)
 
@@ -46,7 +46,7 @@ That much is real and verifiable. What is **not** happening end-to-end:
 
 ## The integration gap (root cause)
 
-[ADR 0008](https://github.com/Crab-Ink-Gaming/meta/blob/main/adr/0008-shared-hardware-contract.md)
+[ADR 0008](https://github.com/einky/meta/blob/main/adr/0008-shared-hardware-contract.md)
 already diagnosed this: shared logic was implemented several times and drifted.
 The decision was "**one owner**: the frame pipeline + SPI driver + keymap live in
 `runtime`; `buildroot_os` consumes it as the `inky-runtime` Buildroot package."
@@ -75,7 +75,7 @@ not the capture wire format.
 ### 3. Single-game boot vs. the launcher
 
 The OS boots **straight into `the_question`**. The `launcher` repo (the Ren'Py
-boot menu) is not built or installed. [ADR 0007](https://github.com/Crab-Ink-Gaming/meta/blob/main/adr/0007-buildroot-os.md)
+boot menu) is not built or installed. [ADR 0007](https://github.com/einky/meta/blob/main/adr/0007-buildroot-os.md)
 lists this as an explicit open item: *"reconcile the single-game appliance boot
 with the launcher + multi-game model."*
 
