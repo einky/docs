@@ -10,15 +10,22 @@ writes much of it in the present tense ("`buildroot_os` consumes `runtime`…",
 "Ren'Py renders the launcher…"). This page records what is **actually wired
 today** versus what is still planned, so the gap is visible and ownable. It was
 produced from a direct audit of the repos on disk, not from the other docs.
+
+**Refreshed 2026-07-04:** the `inky-runtime` package now exists and is consumed,
+so the frame pipeline + input bridge run end-to-end on the emulator, and the Pi
+`inky_defconfig` has been brought to parity — it boots straight into the game and
+drives the panel over SPI + the `libgpiod` C driver (pending on-board validation).
+The historical "gap" narrative below is kept for context; the TL;DR, per-repo
+table, and phases have been updated to the current state.
 :::
 
 ## TL;DR
 
 | Question | Answer |
 |---|---|
-| Is **`runtime`** used by the OS today? | **No.** `buildroot_os` does not package or install it. The OS ships only the *producer* half of the e-ink path (the in-engine PNG capture hook); the *consumer* half (dither → 1-bit → SPI, GPIO input, C driver) lives only in `runtime` and is not integrated. |
-| Is **`runtime`** useful to the project? | **Yes — eventually essential, currently orphaned.** It is the only implementation of the real e-ink frame pipeline, the GPIO handler, the C SPI driver for the GDEM0397T81P panel, and the ESP32 firmware. Not needed for the *emulator*; **cannot ship hardware without it.** |
-| Is the **`games`** repo used by the OS? | **Not as a repo.** The OS embeds its own *vendored copy* of `the_question` under `board/qemu/overlay/opt/`. It is not pulled from `games/`. |
+| Is **`runtime`** used by the OS today? | **Yes.** `buildroot_os` builds it as the `inky-runtime` Buildroot package and `inky-session` runs its console scripts: the full e-ink path (PNG capture hook → dither → 1-bit → dispatch) and the GPIO/keymap input bridge. The emulator drives the socket/TCP preview backend; the Pi target drives the GDEM0397T81P over SPI + the `libgpiod` C driver. |
+| Is **`runtime`** useful to the project? | **Yes — it is the on-device engine of the appliance.** The only implementation of the e-ink frame pipeline, the GPIO handler, and the C SPI driver for the GDEM0397T81P panel. (The ESP32 firmware in it is a retired bring-up bridge.) |
+| Is the **`games`** repo used by the OS? | **Not as a repo.** The OS assembles `the_question` at build time — the stock game from the `renpy` source tree plus the InkyOS deltas in `board/common/the_question-eink/` (the two hooks + e-ink gui/options), layered on by `board/common/post-build.sh`. Not vendored in git, not pulled from `games/`. |
 | Is **`games`** useful as-is? | **Low.** `the_question` is the upstream Ren'Py tutorial — a test fixture, not an einky title. `games/launcher/` is a misfiled Ren'Py SDK project browser that [ADR 0008](https://github.com/einky/meta/blob/main/adr/0008-shared-hardware-contract.md) says to delete. |
 
 ## What actually boots today (emulator path)
@@ -31,34 +38,40 @@ produced from a direct audit of the repos on disk, not from the other docs.
    **`the_question`** at `/opt/the_question`, restarting it on exit.
 4. The engine renders into Xvfb on Mesa `llvmpipe` software desktop GL.
 
-That much is real and verifiable. What is **not** happening end-to-end:
+The end-to-end path is now wired too, through the `inky-runtime` package that
+`inky-session` starts:
 
-- **No frame consumer.** `eink_hook.rpy` pushes one PNG per stable frame to
-  `/tmp/renpy-eink.sock`, but nothing in the image listens on that socket. The
-  hook's own comment points at `eink_receiver.py` "at the repo root" — that file
-  does not exist in `buildroot_os`. The dither/pack/SPI receiver only exists in
-  `runtime` and is not installed.
-- **No input source.** `input_hook.rpy` *binds* `/tmp/renpy-input.sock` and waits
-  for commands, but no committed sender connects to it (the GPIO reader is in
-  `runtime`; the dev `input_sender.py` it references is also absent here).
-- So the appliance currently **renders a game into a virtual framebuffer and
-  stops there.** No pixels reach an e-ink panel; no buttons reach the engine.
+- **Frame consumer.** `eink_hook.rpy` pushes one PNG per stable frame to
+  `RENPY_EINK_SOCKET`; `inky-eink-receiver` (runtime's
+  `frame_processor.eink_receiver`) consumes it, dithers to 1-bit, and dispatches
+  it — to the TCP/socket **preview** on the emulator, or to the **GDEM0397T81P
+  over SPI** on the Pi.
+- **Input source.** `input_hook.rpy` binds `RENPY_INPUT_SOCKET`; on the emulator
+  runtime's `net_sender` feeds it button names, and on the Pi `inky-input`
+  (gpiozero → `xdotool`) injects the mapped keysyms. The button-name table is
+  generated from `meta/shared/hardware.toml`, not hand-listed.
+- So the emulator now runs the **whole pipeline** (render → capture → dither →
+  dispatch → preview), and the Pi target (`inky_defconfig`, below) extends it to a
+  real panel + buttons — pending physical-hardware validation.
 
 ## The integration gap (root cause)
 
 [ADR 0008](https://github.com/einky/meta/blob/main/adr/0008-shared-hardware-contract.md)
-already diagnosed this: shared logic was implemented several times and drifted.
-The decision was "**one owner**: the frame pipeline + SPI driver + keymap live in
+diagnosed the original drift: shared logic was implemented several times. The
+decision was "**one owner**: the frame pipeline + SPI driver + keymap live in
 `runtime`; `buildroot_os` consumes it as the `inky-runtime` Buildroot package."
-**That package was never written.** As a result:
+**That package now exists** (`package/inky-runtime/`) and is consumed, so the gap
+described below is largely closed. The two subsections are kept as history of the
+original state:
 
-### 1. `runtime` is not packaged into the OS
+### 1. `runtime` was not packaged into the OS — now fixed
 
-There is no `package/inky-runtime/` in `buildroot_os`. The image has the engine
-patch (`package/renpy/0001-add-eink-push-callback.patch`) but none of the code
-that the patch's callback is supposed to feed.
+At audit time there was no `package/inky-runtime/` in `buildroot_os`: the image
+had the engine patch (`package/renpy/0001-add-eink-push-callback.patch`) but none
+of the code that the patch's callback is supposed to feed. The package now exists
+and installs that code.
 
-### 2. Two divergent implementations of the same pipeline
+### 2. Two divergent implementations of the same pipeline — now unified
 
 | Concern | `runtime` (canonical owner) | `buildroot_os` (what's shipped) |
 |---|---|---|
@@ -83,9 +96,9 @@ with the launcher + multi-game model."*
 
 | Repo | Wired into the device? | Verdict |
 |---|---|---|
-| `buildroot_os` | — (it *is* the image) | Active. Boots to a Ren'Py game on `llvmpipe` under Xvfb. Missing the runtime consumer + launcher. |
-| `runtime` | **No** | Real and valuable, but orphaned. Must become the `inky-runtime` package to have on-device effect. Until then it only serves dev preview / hardware bring-up out of band. |
-| `games` | Vendored copy only | `the_question` embedded in the OS overlay as a test fixture. Repo not consumed; `games/launcher` is cruft to delete. |
+| `buildroot_os` | — (it *is* the image) | Active. Boots to a Ren'Py game on `llvmpipe` under Xvfb, with the `inky-runtime` frame pipeline + input bridge. Pi target has hardware parity (SPI/GPIO), pending on-board validation. Launcher not yet built in. |
+| `runtime` | **Yes** | Packaged as `inky-runtime` and consumed by `inky-session` (frame receiver + input bridge + SPI driver). The single owner of the on-device pipeline per ADR 0008. |
+| `games` | Build-time assembly | `the_question` assembled from the `renpy` source + InkyOS deltas (`board/common/the_question-eink/`) as a test fixture. Repo not consumed; `games/launcher` is cruft to delete. |
 | `launcher` | **No** | The intended boot UI; not built into the image yet. `launcher/bridge` is retired per ADR 0006/0008 in favour of `runtime`. |
 | `meta/shared` | Source of truth | `hardware.toml` + `protocol.md` define the one contract. Consumers must generate from it; the OS hooks currently hand-roll a divergent subset. |
 
@@ -94,7 +107,13 @@ with the launcher + multi-game model."*
 Ordered by leverage. The first two close the gap the audit found; the rest build
 on a corrected foundation.
 
-### Phase A — make the contract real (highest leverage)
+### Phase A — make the contract real (highest leverage) — landed
+
+Items 1–2 are done: `package/inky-runtime/` builds the wheel and installs
+`inky-frame` / `inky-input` / `inky-eink-receiver`, `inky-session` wires the
+receiver + input bridge, and the button-name table is generated from
+`hardware.toml`. Item 3 is only partly done — a couple of hook comments still
+cite the old dev-side filenames.
 
 1. **Write `package/inky-runtime/`** in `buildroot_os` that builds the `runtime`
    wheel and installs its three console-scripts (`inky-frame`, `inky-input`,
@@ -126,12 +145,23 @@ on a corrected foundation.
    and have it start games from a data partition. If single-game ships first,
    record that decision in an ADR and defer the launcher.
 
-### Phase D — hardware bring-up
+### Phase D — hardware bring-up — landed in software, pending on-board validation
 
-7. **`inky_defconfig` parity.** Bring the Pi Zero 2 W config to feature parity
-   with the emulator (the same `inky-runtime` package, GPIO via `libgpiod`, the
-   real SPI driver), then validate `glxinfo` → `llvmpipe` and a real panel
-   refresh on the board.
+7. **`inky_defconfig` parity — done.** The Pi Zero 2 W config now carries the same
+   stack as the emulator (Mesa `llvmpipe` + Xvfb + Python3 + Ren'Py +
+   `inky-runtime`) plus the hardware backend: `board/inky/config.txt` (generated
+   from the contract) enables SPI + button pull-ups; the C SPI driver drives
+   DC/RST/BUSY over `libgpiod` (1.6.5, v1 API) and streams the panel over
+   `/dev/spidev0.0`; `board/inky/overlay` selects `EINK_BACKEND=spi` /
+   `INPUT_MODE=gpio`. `./build.sh pi` produces a bootable `sdcard.img` that boots
+   straight into `the_question`. A post-image guard
+   (`board/inky/sync-config-txt.sh`, run before the rpi genimage step) re-copies
+   `config.txt` on every image build, so a regenerated contract can never ship
+   stale (Buildroot won't rebuild `rpi-firmware` on a config-file change).
+   **Remaining:** validate on a wired board — `glxinfo` → `llvmpipe`, a real panel
+   refresh, and button input — and settle the driver's three bring-up flip-points
+   (frame inversion `EINKY_INVERT_FRAME`, gpiochip index `$EINKY_GPIOCHIP`, BUSY
+   polarity).
 
 ### Cross-cutting — documentation hygiene
 
