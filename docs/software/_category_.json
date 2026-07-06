@@ -1,0 +1,8 @@
+{
+  "label": "Software Deep Dive",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "The source of truth for how InkyOS boots, how the runtime drives the e-ink panel, and how the launcher manages game sessions."
+  }
+}
