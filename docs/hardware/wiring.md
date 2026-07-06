@@ -58,6 +58,17 @@ Pins are **never edited in a downstream repo directly.** `meta/shared/hardware.t
 is the single source of truth; every consumer regenerates its own constants from it,
 and CI fails the build if any committed file drifts out of sync. To move a signal:
 
+:::warning The build does NOT read `hardware.toml`
+The image bakes in **committed, pre-generated files** — not the contract. `hardware.toml`
+is only their upstream source, linked by a manual `gen` step you must run in **each**
+consumer repo. Editing the contract alone changes nothing in the image until you
+regenerate and rebuild. And the pins that actually drive the panel and buttons at
+runtime live in **`runtime`** (`src/spi_driver/contract.h`, `src/input/keymap.py`), not
+in `config.txt` — `config.txt` only enables the SPI bus and sets boot-time button
+pull-ups. Regenerating `buildroot_os` alone is **not** enough; you must regenerate
+`runtime` too (Step 2).
+:::
+
 ### 1. Edit the contract
 
 Change the value in [`meta/shared/hardware.toml`](https://github.com/einky/meta/blob/main/shared/hardware.toml):
@@ -98,10 +109,13 @@ cd buildroot_os && python3 scripts/gen_hardware.py
 cd runtime && make gen
 ```
 
-`buildroot_os` also runs the parity check automatically on every build (`./br.sh` calls
-`scripts/gen_hardware.py --check` before Buildroot runs), so a forgotten regeneration
-fails fast rather than shipping a stale image. Bypass it only in an emergency with
-`INKY_SKIP_CHECKS=1`.
+`buildroot_os` runs a parity check automatically on every build (`./br.sh` calls
+`scripts/gen_hardware.py --check` before Buildroot runs), so forgetting to regenerate
+**buildroot_os's own** files fails the build rather than shipping stale. But that check
+does **not** cover `runtime` — a forgotten `make gen` there is caught only by `runtime`'s
+own CI (`make gen-check`), so regenerate both by hand. Both checks also skip silently if
+the `meta` repo isn't checked out beside these repos, and `INKY_SKIP_CHECKS=1` bypasses
+the buildroot_os one.
 
 :::note Not the same as version pins
 `buildroot_os/scripts/check_pins.py` verifies **software version pins** against
