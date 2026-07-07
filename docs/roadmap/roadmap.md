@@ -320,9 +320,8 @@ planned, and its basic variant has no telemetry). Split the feature:
 Write `docs/hardware/bring-up.md`: the ordered on-board checklist (serial
 console → boot → `glxinfo | grep llvmpipe` → panel init → first full refresh →
 buttons → full session → Wi-Fi), with the three driver flip-points
-(`EINKY_INVERT_FRAME`, `EINKY_GPIOCHIP`, BUSY polarity) and
-`GPIOZERO_PIN_FACTORY` documented as boot-arg/env toggles requiring **no
-rebuild** (they already are env-driven — verify and document each).
+(`EINKY_INVERT_FRAME`, `EINKY_GPIOCHIP`, BUSY polarity)
+documented as boot-arg/env toggles requiring **no rebuild** (they already are env-driven — verify and document each).
 
 ### E2. Panel-driver desk-check and SPI dry-run harness
 

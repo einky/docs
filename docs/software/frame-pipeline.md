@@ -103,7 +103,7 @@ today is the simpler v1 below (the playbook is implemented by roadmap step D1):
 
 ```
  source (launcher-owned, one thread each)          consumer
- ┌ GpioSource   gpiozero Buttons, pull-up,         menu mode:
+ ┌ GpioSource   gpiod edge events, pull-up,        menu mode:
  │              30 ms debounce, hold detection       top Screen.handle(event)
  ├ TcpSource    ASCII names on :5334
  └ StdinSource  names on stdin (host dev)          in-game mode:
@@ -158,6 +158,6 @@ Kept in `runtime` but **not** in the shipping boot path:
 | Path | Status |
 |---|---|
 | `inky-frame` (Xvfb root-window capture → dither → dispatch) | superseded by the launcher-owned pipeline; useful for standalone debugging |
-| `inky-input` (gpiozero → `xdotool` keysym injection into X) | superseded — games get input over the socket; never needed for the launcher's own UI |
+| `inky-input` (gpiod → `xdotool` keysym injection into X) | superseded — games get input over the socket; never needed for the launcher's own UI |
 | `inky-eink-receiver` (standalone engine-capture receiver) | the launcher embeds an equivalent, stoppable receiver (`launcher/session/receiver.py`) |
 | ESP32 dev bridge (`runtime/firmware/esp32`, TCP :5333/:5334 to a real spare panel) | retired bring-up artifact (ADR 0006) |

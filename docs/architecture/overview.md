@@ -104,7 +104,8 @@ BusyBox init
 ```
 
 There is exactly **one owner** of each hardware resource for the whole uptime:
-the launcher holds `/dev/spidev0.0` and the gpiozero buttons; games never touch
+the launcher holds `/dev/spidev0.0` and the GPIO buttons (gpiochip chardev via
+python-gpiod); games never touch
 either. Games only speak the two engine-capture sockets.
 
 ## The frame + input pipeline

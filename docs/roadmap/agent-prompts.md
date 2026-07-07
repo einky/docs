@@ -966,7 +966,7 @@ variable is switchable WITHOUT rebuilding the image.
    EINKY_INVERT_FRAME (frame polarity), EINKY_GPIOCHIP (gpiochip index),
    BUSY polarity (check runtime/src/spi_driver/spi_driver.c — if hard-coded,
    add EINKY_BUSY_ACTIVE_LOW), SPI bus speed (add EINKY_SPI_HZ if fixed),
-   RST pulse timing if marginal, GPIOZERO_PIN_FACTORY, EINKY_SPI_DEV.
+   RST pulse timing if marginal, EINKY_GPIOCHIP, EINKY_SPI_DEV.
    Small runtime/ changes are in scope; the generated contract.h values stay
    the DEFAULTS (env only overrides).
 2. Write docs/docs/hardware/bring-up.md as an ordered checklist an engineer
@@ -996,8 +996,8 @@ PITFALLS — think about these:
   runbook needs the remount-rw incantation, or better: source an optional
   /data/inky-session.local override AFTER the target file (implement this;
   it also helps field debugging forever).
-- gpiozero + libgpiod both touch GPIO (buttons via RPi.GPIO pin factory,
-  panel DC/RST/BUSY via libgpiod in the C driver) — different pins, but
+- python-gpiod (buttons) + libgpiod v2 (panel DC/RST/BUSY in the C driver)
+  both touch the same gpiochip — different pins, but
   document the split and the "GPIO busy" failure mode if a pin overlaps by
   contract mistake.
 - The C driver claims lines via libgpiod v1 API — gpiochip numbering can
@@ -1170,9 +1170,9 @@ PITFALLS — think about these:
   generated from the contract — trust it over memory).
 - First panel test: run the standalone splash/driver path (B3/E2) before
   the full stack — fewer moving parts than launcher+game.
-- gpiozero's rpigpio pin factory needs /dev/gpiomem permissions (running as
-  root, fine) but can conflict with other GPIO users — if buttons misbehave
-  while the panel works, check the chip/line claims (gpioinfo).
+- The buttons and the panel's control lines are separate chardev requests on
+  the same gpiochip and can conflict with other GPIO users — if buttons
+  misbehave while the panel works, check the chip/line claims (gpioinfo).
 - Thermals: llvmpipe pegs cores; in an enclosure, watch throttling
   (vcgencmd/sysfs thermal) during a long session — note it for the case
   repo.

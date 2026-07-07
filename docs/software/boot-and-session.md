@@ -48,7 +48,7 @@ overlay file per board, sourced by the session supervisor:
 | `EINKY_DISPLAY_BACKEND` | `spi` | `tcp` | panel over SPI vs. frame stream on TCP :5333 |
 | `EINKY_INPUT_SOURCE` | `gpio` | `tcp` | real buttons vs. ASCII names on TCP :5334 |
 | `EINKY_SPI_DEV` | `/dev/spidev0.0` | — | panel device |
-| `GPIOZERO_PIN_FACTORY` | `rpigpio` | — | gpiozero backend (lgpio is not packaged in Buildroot) |
+| `EINKY_GPIOCHIP` | `/dev/gpiochip0` | — | gpiochip character device (buttons via python-gpiod; also the C driver's DC/RST/BUSY) |
 | `EINKY_GAMES_DIR` | `/opt/games` | `/opt/games` | where games are scanned |
 | `EINKY_STATE_DIR` | `/var/lib/inky` | `/var/lib/inky` | settings, cover cache, game logs |
 | `EINKY_ALLOW_POWER` | `1` | `1` | let the Power menu really halt/reboot |
