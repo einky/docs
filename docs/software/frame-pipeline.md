@@ -60,9 +60,10 @@ connection persistent:
 ```
 
 `N = width/8 × height = 48 000` for the production panel. Packing is MSB-first
-with **bit = 1 → white** (`numpy.packbits(grey >= 128)`); the SPI driver (and
-any panel-side consumer) **inverts** before drawing because the panel treats
-bit = 1 as the black foreground.
+with **bit = 1 → white** (`numpy.packbits(grey >= 128)`); the SSD1677's BW RAM
+uses the same convention (bit = 1 → white), so the SPI driver writes the packed
+frame **as-is** by default — `EINKY_INVERT_FRAME=1` remains the bring-up
+flip-point if a panel batch comes up as a photo-negative.
 
 ### Engine-capture format (`[protocol.engine_capture]`)
 
