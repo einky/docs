@@ -21,6 +21,9 @@ sidebar_position: 1
 The **GooDisplay GDEM0397T81P** is a 3.97-inch e-ink panel:
 
 - Resolution: **800×480 pixels**
+- Controller IC: **Solomon Systech SSD1677** (this dictates the SPI command set
+  in `runtime`'s C driver — write-RAM `0x24`, update-control `0x22`, master
+  activation `0x20`; BUSY is active-high)
 - Interface: **SPI**
 - Logic voltage: **3.3V**
 - Supports both full refresh and partial refresh
