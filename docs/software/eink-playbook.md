@@ -107,12 +107,23 @@ as a display setting. The golden-frame tests pin whichever algorithms ship.
   stable-frame PNG → decode+dither (~tens of ms at 800×480 with numpy) →
   partial refresh (~400 ms). The refresh dominates; keep everything else
   boring.
-- The Pi Zero 2 W has **512 MB RAM, no swap** by default, shared by: kernel,
-  Xvfb, Ren'Py + llvmpipe (the hog — software GL buffers + LLVM JIT), the
-  launcher (Pillow/numpy), and the page cache. QEMU runs with `-m 512` **on
-  purpose** — keep it there so OOM appears in emulation, not in the field.
-  Known knobs when memory pressure bites: `LP_NUM_THREADS` (llvmpipe),
-  Ren'Py `config.image_cache_size`, zram swap.
+- The Pi Zero 2 W has **512 MB RAM, no disk swap**, shared by: kernel, Xvfb,
+  Ren'Py + llvmpipe (the hog — software GL buffers + LLVM JIT), the launcher
+  (Pillow/numpy), and the page cache. QEMU runs with `-m 512` **on purpose** —
+  keep it there so OOM appears in emulation, not in the field. On first hardware
+  bring-up the stock config OOM-killed Ren'Py; the image now ships three memory
+  measures, in order of impact:
+  1. **Image-cache cap** — Ren'Py's `config.image_cache_size_mb` defaults to
+     **400 MB** (bigger than half the box's RAM). The e-ink game hook
+     (`eink_hook.rpy`) caps it to **64 MB**; an 800×480 1-bit panel needs no
+     more. This was the primary OOM driver.
+  2. **`LP_NUM_THREADS=1`** (set in `inky-session.sh`) — llvmpipe's per-thread
+     tile buffers are pure memory cost; at ~2 FPS the lost parallelism is
+     invisible.
+  3. **zram swap** — a 384 MB lz4-compressed RAM swap (`CONFIG_ZRAM=y` +
+     `S06zram` init script) as a spike backstop, since there is no disk swap.
+  Further knob if still tight: lower the game's render resolution from 1280×720
+  to the panel-native 800×480 (`gui.init` in the game's `gui.rpy`).
 
 ## Failure symptoms → causes (triage table)
 
