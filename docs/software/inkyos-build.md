@@ -110,6 +110,48 @@ NO_PREVIEW=1 ./run-emulator.sh          # headless (same as ./run-qemu.sh)
 (Config-only changes don't rebuild a package — use `<pkg>-dirclean` first when
 toggling package sub-options.)
 
+## Automated acceptance test
+
+`tests/e2e_emulator.py` (run it with `make e2e`, or `./run-e2e.sh`) is the
+unattended end-to-end test for the emulator image. It boots the image with the
+**exact** `run-qemu.sh` command — `virt`, `-m 512` (kept deliberately so a
+memory regression fails here), host-forwarded frame/input ports — then drives a
+full session over the two TCP sockets and asserts, in order:
+
+1. **boot** — the launcher's first frame arrives on `:5333` and matches the
+   committed golden `tests/goldens/library_first_frame.bin` (the library home
+   screen; deterministic because the fonts are baked into the image and it shows
+   no clock/battery);
+2. **input** — a button round-trips (`Start` opens Settings, `B` returns to the
+   same golden);
+3. **game** — launching `the_question` hands the panel to the game; frames start
+   flowing and differ from the library. Game frames are dithered photos, so they
+   are checked by **invariants** (`>25 %` black, not equal to a launcher frame)
+   rather than a brittle exact golden;
+4. **session** — `down`+`start` begin the story, `a` advances dialogue, `b`
+   opens/closes the in-game menu, and the **hold:start** combo exits back to the
+   library golden;
+5. **reboot** — `Settings ▸ Power ▸ Restart ▸ Confirm` really reboots the VM
+   (`EINKY_ALLOW_POWER=1` in the emulator overlay) and the launcher comes back
+   with the same golden.
+
+The frame/input wire clients come from `../launcher/tools/frame_stream.py` — the
+single implementation of the [frame-pipeline](./frame-pipeline.md) preview
+protocol, shared with `dev_preview.py`, so the byte format is never re-derived.
+
+There are **no fixed sleeps**: every wait is a poll against a deadline. Ren'Py's
+cold start under `llvmpipe` on 512 MB takes tens of seconds to a couple of
+minutes and the first in-game inputs carry a JIT-warmup tail, so the deadlines
+are generous and env-overridable (`EINKY_E2E_*_TIMEOUT`; see the buildroot_os
+README). The frame connection drops and reconnects across the game handoff and
+the reboot — the client retries transparently. On success the test prints one
+stable `E2E_METRICS result=PASS …` line (boot-to-first-frame,
+boot-to-interactive, …) for CI to track; on failure it exits non-zero and saves
+the offending frame + guest serial log under `tests/.artifacts/`.
+
+Regenerate the golden deliberately after an intended UI change, eyeballing the
+printed changed-pixel/diff summary: `make e2e-bless`.
+
 ## Known build gotchas
 
 See the [buildroot_os README troubleshooting table](https://github.com/einky/buildroot_os#troubleshooting)

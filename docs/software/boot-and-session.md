@@ -99,14 +99,37 @@ the whole uptime** (ADR 0009). The session states:
 
 ## Failure modes & how they're handled
 
-| Failure | Behaviour |
-|---|---|
-| Launcher crashes | supervisor restarts it in 3 s; panel re-initialised |
-| Game fails to spawn | partial session torn down; "Could not start the game" screen |
-| Game crashes right after launch | fast-exit detection → "The game exited unexpectedly" screen |
-| Game's input socket not yet listening | send fails quietly and reconnects on the next press (Ren'Py may still be booting) |
-| Bad/oversized PNG frame from a game | frame dropped (or connection dropped for a bad length); pipeline keeps running |
-| Player mashes keys at a list boundary | screens report "nothing changed" and the render is skipped — no pointless e-ink flashing |
+Every row below is pinned by a test. The launcher tests
+(`launcher/tests/integration/`) drive the real session code with the scriptable
+`fake_game.py` and a `PngBackend`; the one system-level row is exercised by the
+[A1 emulator test](./inkyos-build.md#automated-acceptance-test).
+
+| Failure | Behaviour | Test |
+|---|---|---|
+| Launcher process killed (crash) | supervisor relaunches it in 3 s; a fresh frame reaches the panel | A1 `supervisor-restart` stage (`kill -9` over serial) |
+| Game fails to spawn (bad interpreter) | partial session torn down; "Could not start the game" screen | `test_session.py::test_spawn_failure_shows_error_screen` |
+| `Xvfb` won't start | start aborts; receiver stopped **and its socket unlinked**; "Could not start the game" screen | `test_session_faults.py::test_ensure_xvfb_failure_shows_error_and_unlinks_socket` |
+| Game crashes on launch (rc ≠ 0 within 10 s) | fast-exit detection → "The game exited unexpectedly" screen | `test_session_faults.py::test_fast_nonzero_crash_shows_error_screen` |
+| Game exits cleanly (**rc == 0**, however fast) | return to the library **silently** — "fast" only means "crash" when rc ≠ 0 | `test_session_faults.py::test_clean_fast_exit_returns_silently` |
+| Game killed mid-frame (SIGKILL / external) | `GameExitEvent` → session torn down, input/eink socket unlinked, library re-rendered (full refresh) | `test_session_faults.py::test_sigkill_midframe_tears_down_and_returns_to_library` |
+| Game's input socket not yet listening | each press is one connect attempt that fails quietly and resets for the next — no exception, no reconnect spin | `test_session_faults.py::test_input_socket_absent_presses_dropped_silently` |
+| Garbage (non-PNG) frame body | frame dropped; connection **kept**; the next valid frame still displays | `test_session_faults.py::test_garbage_frame_dropped_receiver_survives` |
+| Oversized (> 8 MiB) length header | connection dropped; receiver re-accepts and displays the next valid frame | `test_session_faults.py::test_oversized_header_drops_connection_receiver_reaccepts` |
+| Frame PNG not 800×480 | **scaled** to the panel (shared `to_panel_grey` resize) — never dropped or mis-sized downstream | `test_session_faults.py::test_wrong_dimension_png_is_scaled_to_panel` |
+| Display backend `.show()` errors mid-session | frame dropped, receiver keeps serving; `TcpBackend` silently drops frames when the preview client is absent/vanished | `test_session_faults.py::test_receiver_survives_backend_show_oserror`, `test_tcp_backend_drops_frames_with_no_client` |
+| Rapid relaunch (launch → exit → launch) | receiver rebinds cleanly (no "address already in use"); a fresh receiver thread, no crossed threads | `test_session_faults.py::test_rapid_relaunch_reuses_socket_cleanly` |
+| Player mashes keys at a list boundary | screens report "nothing changed" and the render is skipped — no pointless e-ink flashing | `test_navigation.py::test_boundary_press_is_noop` |
+
+Two behaviours were **defined** here (previously undefined in code):
+
+- **Wrong-dimension frames are scaled**, not letterboxed or dropped: the game
+  renders at 1280×720 and the panel is 800×480, so the pipeline already resizes
+  every frame through `to_panel_grey`; a game that emits any other size gets the
+  same treatment rather than a mis-sized packed buffer.
+- **A display-backend error never kills the session**: the frame receiver
+  swallows an `OSError` from `backend.show()` and keeps serving, so a preview
+  client that vanishes (or a transient SPI glitch) can't freeze the panel for the
+  rest of the game.
 
 ## What's on the image (per package)
 
