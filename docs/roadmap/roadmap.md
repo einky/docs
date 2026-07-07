@@ -23,7 +23,9 @@ bring-up is a self-contained checklist that starts the day a board exists —
 and everything before it is designed to make that day short.
 
 > Each step below has a ready-to-use agent brief in
-> [Agent prompts](./agent-prompts.md).
+> [Agent prompts](./agent-prompts.md). Display-touching steps must follow the
+> [E-ink playbook](../software/eink-playbook.md) — the project's refresh,
+> ghosting, and dithering rules.
 
 ---
 
@@ -38,16 +40,16 @@ locked in by the Phase A regression tests.
 | F1 | System Boot | **Delivered** — BusyBox init → `inky-session` → launcher, no manual steps | A1 (regression-gate), B3 (splash + boot time) |
 | F2 | Library Navigation | **Delivered** — library screen scans `/opt/games`, manifests + covers | A1; C2 adds a second title to make it real |
 | F3 | Start Game | **Delivered** — `GameSession` spawns Ren'Py under Xvfb | A1, A3 (failure paths) |
-| F4 | In-Game Menu | **Partial** — B button queues `game_menu`; the stock Ren'Py menu GUI is not e-ink-friendly beyond the bundled fixture's overrides | D2 |
-| F5 | Save/Load System | **Partial** — Ren'Py saves work but land on the root filesystem (`HOME=/root`), so they don't survive a reflash | B1, B2 |
-| F6 | Settings Menu | **Partial** — refresh cadence, Wi-Fi, power exist; font size missing; *brightness and volume do not apply to this hardware* (no backlight, no audio path) — e-ink equivalents instead | D1 |
-| F7 | Shutdown | **Delivered** — Power screen halts/reboots with panel deep-sleep first; *data integrity* needs the read-only root | B1 |
-| F8 | Read & Play | **Delivered** — engine renders under Xvfb; PNG → dither → panel pipeline | A1 |
+| F4 | In-Game Menu | **Partial** — B button queues `game_menu`; the stock Ren'Py menu GUI is not e-ink-friendly beyond the bundled fixture's overrides | D3 |
+| F5 | Save/Load System | **Partial** — Ren'Py saves work but land on the root filesystem (`HOME=/root`), so they don't survive a reflash | B1, B2, B4 (no-RTC save ordering) |
+| F6 | Settings Menu | **Partial** — refresh cadence, Wi-Fi, power exist; font size missing; *brightness and volume do not apply to this hardware* (no backlight, no audio path) — e-ink equivalents instead | D2 |
+| F7 | Shutdown | **Delivered** — Power screen halts/reboots with panel deep-sleep first; *data integrity* needs the read-only root | B1, B4 |
+| F8 | Read & Play | **Delivered mechanically; quality work remains** — engine renders under Xvfb; PNG → dither → panel pipeline works, but frame dedup, dither stability, and refresh-policy v2 (the [playbook](../software/eink-playbook.md) rules) are not implemented | A1, D1 |
 | F9 | Choice Handling | **Delivered** — buttons → launcher → input socket → `renpy_events` (focus/dismiss) | A1 |
-| F10 | Resume Game (Pop Mode) | **Partial** — Ren'Py's menu returns to the exact interaction; needs explicit verification + e-ink GUI polish | D2 |
-| F11 | View Battery Status | **Missing** — no fuel gauge in the BOM today (IP5306 planned, no telemetry); needs a software abstraction now, a hardware decision later | D4 (UI + mock), E/F (real readings) |
-| F12 | Crash Recovery | **Partial** — launcher crash → supervisor restart, game crash → error screen; *game-progress* recovery (autosave + continue) not wired | A3, B2 |
-| F13 | Sleep Mode | **Missing** — no inactivity handling; panel deep-sleep exists only at power-off | D3 |
+| F10 | Resume Game (Pop Mode) | **Partial** — Ren'Py's menu returns to the exact interaction; needs explicit verification + e-ink GUI polish | D3 |
+| F11 | View Battery Status | **Missing** — no fuel gauge in the BOM today (IP5306 planned, no telemetry); needs a software abstraction now, a hardware decision later | D5 (UI + mock), E/F (real readings) |
+| F12 | Crash Recovery | **Partial** — launcher crash → supervisor restart, game crash → error screen; *game-progress* recovery (autosave + continue) not wired; no watchdog for a hung (not crashed) UI | A3, B2, B4 |
+| F13 | Sleep Mode | **Missing** — no inactivity handling; panel deep-sleep exists only at power-off | D4 |
 
 ---
 
@@ -135,6 +137,35 @@ static 1-bit "einky" frame to the panel before the launcher finishes starting.
 - **Done when:** something appears on the panel path < 2 s after init starts,
   and boot-to-interactive time is tracked in CI output.
 
+### B4. Platform health: clock, memory, storage wear, watchdog *(F5, F7, F12)*
+
+The invisible appliance work that decides whether the device survives months
+of real use:
+
+- **No RTC on the Pi Zero 2 W** — the clock starts at epoch every boot until
+  NTP (which needs Wi-Fi). Ship a `fake-hwclock` (persist time to `/data`
+  periodically + at shutdown, restore at boot), run `ntpd` opportunistically,
+  and make **nothing correctness-critical depend on wall-clock time** — in
+  particular "newest autosave" must use sequence numbers/slot metadata, never
+  mtimes.
+- **Memory budget** — 512 MB shared with llvmpipe. Measure RSS of the full
+  stack in QEMU (`-m 512` kept deliberately), set `LP_NUM_THREADS` and Ren'Py
+  `config.image_cache_size` defaults, add zram swap as a safety valve, and
+  assert in A1 that a game session stays under a threshold.
+- **SD wear & write hygiene** — `noatime`, sane commit interval on `/data`;
+  debounce settings writes (never write per-keypress); size-capped rotating
+  logs on `/data` (a chatty log on flash is a slow-motion device killer).
+- **Watchdog** — a hung (not crashed) launcher currently bricks the session;
+  the supervisor only handles exits. Add a heartbeat (launcher touches a file
+  / systemd-style ping) with the supervisor or BusyBox `watchdog` restarting
+  on stall.
+
+- **Validated:** QEMU (clock persistence across reboots, OOM behaviour, log
+  rotation, watchdog recovery from a SIGSTOPped launcher).
+- **Done when:** reboots keep monotonic-ish time without network, a memory
+  ceiling is enforced and CI-tracked, logs can't fill `/data`, and a frozen
+  launcher recovers automatically.
+
 ## Phase C — The content story (games as a product surface)
 
 *Turn "a build-time test fixture" into "a library you can grow" (F2, F3). All
@@ -156,7 +187,7 @@ Delete the `games/launcher` cruft; seed the `games` repo with the convention.
 
 Create `games/template-eink/`: a minimal Ren'Py project pre-configured for the
 panel (800×480, high-contrast 1-bit-friendly GUI, hooks, manifest, autosave
-settings from B2, e-ink game-menu screens shared with D2) — then a small
+settings from B2, e-ink game-menu screens shared with D3) — then a small
 original game (even a short demo VN) built from it. Two entries in the library
 validates ordering, covers, manifests, and per-game logs for real.
 
@@ -174,21 +205,50 @@ prototype the gadget config in QEMU where possible, validate at hardware time.
 - **Done when:** adding/removing a game folder on `/data` changes the library
   on next visit, with no image rebuild.
 
-## Phase D — Player-facing system features (F4, F6, F10, F11, F13)
+## Phase D — Player-facing system features (F4, F6, F8, F10, F11, F13)
 
 *The remaining product features. All are launcher/game-side software with mock
 backends where hardware is involved, so all are buildable and testable on the
-emulator now.*
+emulator now. Every step in this phase follows the
+[E-ink playbook](../software/eink-playbook.md).*
 
-### D1. Settings expansion *(F6)*
+### D1. Refresh & image-quality engine *(F8 — the e-ink core)*
+
+Implement the playbook's decision table as code — today's `RefreshPolicy` is a
+naive counter and the pipeline has three known quality gaps:
+
+- **Frame dedup:** hash the packed frame; byte-identical frames are never
+  pushed (no SPI, no refresh, no ghost-budget spend).
+- **Refresh policy v2:** full refresh on screen/scene transitions, game
+  start/exit, wake, and when the frame-diff exceeds a changed-pixel threshold
+  (~40 %, tunable); partial otherwise; ghost budget counts *partials shown*;
+  a "Clear screen" action in Settings.
+- **Dither stability:** add ordered/blue-noise dithering alongside
+  Floyd–Steinberg in `runtime` (FS's whole-frame noise reshuffle defeats
+  dedup and sparkles under partial refresh — see the playbook); default game
+  frames to ordered, keep threshold for UI, select per game via
+  `inky-manifest.toml` and globally via Settings.
+- **Rate limiting:** the receiver shows the *newest* frame when the panel is
+  ready and drops intermediates — never queues (an animating game must not
+  build up latency).
+
+- **Validated:** host + QEMU (goldens for each dither; a diff-locality test —
+  1-pixel input change ⇒ localized output change under ordered dithering;
+  dedup and policy unit tests; an emulator scenario with an animating fake
+  game asserting drops, not queueing).
+- **Done when:** the playbook's decision table is enforced by tests, and the
+  pack-parity/golden suites pin the new algorithms.
+
+### D2. Settings expansion *(F6)*
 
 Grow Settings beyond refresh/Wi-Fi/power, staying honest about the hardware:
 
 - **Font size** — a launcher-wide text-scale setting (theme reads it from the
   `SettingsStore`), plus a per-game text-size override passed to games via the
   template's `gui.rpy` (C2).
-- **Display tuning** — expose the existing `full_refresh_every` plus a dither
-  contrast/threshold option (feeds the shared pipeline parameters).
+- **Display tuning** — expose the existing `full_refresh_every` plus the D1
+  dither-algorithm choice and a contrast/threshold option, and the "Clear
+  screen" (force full refresh) action.
 - **About page** — image version, storage usage, IP address when Wi-Fi is up.
 - **Brightness / volume:** *not applicable* — the panel has no backlight and
   the device no audio output. Record this explicitly (one line in an ADR or
@@ -199,7 +259,7 @@ Grow Settings beyond refresh/Wi-Fi/power, staying honest about the hardware:
   (extends the existing settings integration test), and the docs' launcher
   page reflects the new pages.
 
-### D2. In-game menu & exact resume on e-ink *(F4, F10)*
+### D3. In-game menu & exact resume on e-ink *(F4, F10)*
 
 The engine already provides the mechanism (B → `game_menu`; closing the menu
 returns to the exact interaction — "pop mode"). Make it a product feature:
@@ -215,7 +275,7 @@ returns to the exact interaction — "pop mode"). Make it a product feature:
 - **Done when:** the full save → quit → relaunch → load → exact-resume loop
   passes on the emulator using only the seven buttons.
 
-### D3. Sleep mode *(F13)*
+### D4. Sleep mode *(F13)*
 
 An inactivity state machine in the launcher (which owns the panel and buttons,
 so it is the right owner):
@@ -233,7 +293,7 @@ so it is the right owner):
   frame and stops frame traffic; a button press restores the UI (test via the
   TCP backends); panel-driver calls are asserted with a fake panel.
 
-### D4. Battery status *(F11 — software half)*
+### D5. Battery status *(F11 — software half)*
 
 The BOM has **no fuel gauge today** (power is a bare Li-Ion pack; an IP5306 is
 planned, and its basic variant has no telemetry). Split the feature:
@@ -286,7 +346,7 @@ The runbook from E1, executed: flash, serial boot, GL check, panel first
 light, settle flip-points, buttons, full session on glass, refresh/ghosting
 tuning (the `full_refresh_every` default and partial-refresh waveform quality
 can only be judged by eye), real Wi-Fi join, power-off panel protection,
-sleep-mode power draw (D3) and battery telemetry hardware (D4), and a battery
+sleep-mode power draw (D4) and battery telemetry hardware (D5), and a battery
 runtime measurement. Feed every deviation back into the contract, the driver
 defaults, and the runbook. **Exit criterion = the goal statement:** flash →
 plug in → boot → launcher → play, hands-off.
@@ -310,19 +370,22 @@ server/web catalog integration for pushing games over Wi-Fi.
 | 4 | B1 data partition + read-only rootfs | F5, F7 | no |
 | 5 | B2 durable saves + autosave/crash recovery | F5, F12 | no |
 | 6 | B3 splash + boot-time budget | F1 | no |
-| 7 | C1 game-packaging ADR + hook-injection mechanism | F2, F3 | no |
-| 8 | C2 e-ink template + second title | F2, F8, F9 | no |
-| 9 | C3 sideloading via the data partition | F2 | no |
-| 10 | D1 settings expansion (font size, display tuning, about) | F6 | no |
-| 11 | D2 in-game menu + exact resume | F4, F10 | no |
-| 12 | D3 sleep mode | F13 | no |
-| 13 | D4 battery status (provider + UI + hardware ADR) | F11 | no |
-| 14 | E1 bring-up runbook + no-rebuild flip-points | — | no |
-| 15 | E2 SPI driver desk-check + fake-bus sequence tests | — | no |
-| 16 | E3 Wi-Fi boot service | — | no |
-| 17 | F hardware bring-up checklist | F11, F13 (hw half) | **yes** |
-| 18 | G release engineering & update story | — | partially |
+| 7 | B4 platform health: clock, memory, wear, watchdog | F5, F7, F12 | no |
+| 8 | C1 game-packaging ADR + hook-injection mechanism | F2, F3 | no |
+| 9 | C2 e-ink template + second title | F2, F8, F9 | no |
+| 10 | C3 sideloading via the data partition | F2 | no |
+| 11 | D1 refresh & image-quality engine (playbook as code) | F8 | no |
+| 12 | D2 settings expansion (font size, display tuning, about) | F6 | no |
+| 13 | D3 in-game menu + exact resume | F4, F10 | no |
+| 14 | D4 sleep mode | F13 | no |
+| 15 | D5 battery status (provider + UI + hardware ADR) | F11 | no |
+| 16 | E1 bring-up runbook + no-rebuild flip-points | — | no |
+| 17 | E2 SPI driver desk-check + fake-bus sequence tests | — | no |
+| 18 | E3 Wi-Fi boot service | — | no |
+| 19 | F hardware bring-up checklist | F11, F13 (hw half) | **yes** |
+| 20 | G release engineering & update story | — | partially |
 
-Steps 1–16 are deliberately hardware-free; any of 14–16 can be pulled earlier
-if a board's arrival date firms up. Steps 10–13 are independent of each other
-and of 7–9 (parallelizable), but all assume the Phase A safety net exists.
+Steps 1–18 are deliberately hardware-free; any of 16–18 can be pulled earlier
+if a board's arrival date firms up. Steps 11–15 are independent of each other
+and of 8–10 (parallelizable, though D2 exposes options D1 defines), but all
+assume the Phase A safety net exists.

@@ -85,7 +85,10 @@ dying.
 
 e-ink partial refreshes are fast but accumulate ghosting; full refreshes flash
 the panel but clear it. Explicit control over this trade-off is the core reason
-the launcher is native Python (ADR 0009):
+the launcher is native Python (ADR 0009). The full decision rules — including
+frame dedup, the changed-pixel threshold, dither stability, and panel-health
+invariants — live in the [E-ink playbook](./eink-playbook.md); what ships
+today is the simpler v1 below (the playbook is implemented by roadmap step D1):
 
 - **Menu:** `RefreshPolicy` — full refresh on screen transitions and dialogs,
   and every `full_refresh_every` frames (default **30**, user-tunable in
